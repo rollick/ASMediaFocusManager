@@ -60,7 +60,8 @@ static NSTimeInterval const kDefaultOrientationAnimationDuration = 0.4;
 
 - (NSUInteger)supportedInterfaceOrientations
 {
-    return UIInterfaceOrientationMaskPortrait;
+    return UIInterfaceOrientationMaskAll;
+    //return UIInterfaceOrientationMaskPortrait;
 }
 
 - (BOOL)isParentSupportingInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation
