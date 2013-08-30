@@ -9,10 +9,11 @@
 #import "ASMediaFocusManager.h"
 #import "ASMediaFocusController.h"
 #import <QuartzCore/QuartzCore.h>
+#import "SDWebImageDecoder.h"
 
 static CGFloat const kAnimateElasticSizeRatio = 0.03;
 static CGFloat const kAnimateElasticDurationRatio = 0.6;
-static CGFloat const kAnimationDuration = 0.5;
+static CGFloat const kAnimationDuration = 0.3;
 
 @interface ASMediaFocusManager ()
 // The media view being focused.
@@ -59,7 +60,7 @@ static CGFloat const kAnimationDuration = 0.5;
         self.zoomEnabled = YES;
         self.isZooming = NO;
         self.gestureDisabledDuringZooming = YES;
-        self.isDefocusingWithTap = NO;
+        self.isDefocusingWithTap = YES;
     }
     
     return self;
@@ -104,7 +105,7 @@ static CGFloat const kAnimationDuration = 0.5;
 - (ASMediaFocusController *)focusViewControllerForView:(UIView *)mediaView
 {
     ASMediaFocusController *viewController;
-    UIImage *image;
+    __block UIImage *image;
     
     image = [self.delegate mediaFocusManager:self imageForView:mediaView];
     if(image == nil)
@@ -115,29 +116,38 @@ static CGFloat const kAnimationDuration = 0.5;
     viewController.titleLabel.text = [self.delegate mediaFocusManager:self titleForView:mediaView];
     viewController.mainImageView.image = image;
     
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSURL *url;
-        NSData *data;
-        NSError *error = nil;
-        
-        url = [self.delegate mediaFocusManager:self mediaURLForView:mediaView];
-        data = [NSData dataWithContentsOfURL:url options:0 error:&error];
-        if(error != nil)
-        {
-            NSLog(@"Warning: Unable to load image at %@. %@", url, error);
-        }
-        else
-        {
-            UIImage *image;
-
-            image = [[UIImage alloc] initWithData:data];
-            image = [self decodedImageWithImage:image];
+    __block NSURL *url = [self.delegate mediaFocusManager:self mediaURLForView:mediaView];
+    
+    if (url)
+    {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            NSData *data;
+            NSError *error = nil;
+            data = [NSData dataWithContentsOfURL:url options:0 error:&error];
+            if(error != nil)
+            {
+                NSLog(@"Warning: Unable to load image at %@. %@", url, error);
+            }
+            else
+            {
+                UIImage *image = [[UIImage alloc] initWithData:data];
+                image = [UIImage decodedImageWithImage:image];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    viewController.mainImageView.image = image;
+                });
+            }
+        });
+    }
+    else
+    {
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            image = [UIImage decodedImageWithImage:viewController.mainImageView.image];
             dispatch_async(dispatch_get_main_queue(), ^{
                 viewController.mainImageView.image = image;
             });
-        }
-    });
-
+        });
+    }
+    
     return viewController;
 }
 

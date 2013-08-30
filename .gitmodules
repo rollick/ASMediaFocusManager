@@ -1,0 +1,3 @@
+[submodule "thirdparty/SDWebImage"]
+	path = thirdparty/SDWebImage
+	url = https://github.com/rs/SDWebImage
